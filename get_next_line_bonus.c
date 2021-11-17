@@ -1,18 +1,20 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   get_next_line.c                                    :+:      :+:    :+:   */
+/*   get_next_line_bonus.c                              :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: alcierra <alcierra@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/10/15 12:18:55 by alcierra          #+#    #+#             */
-/*   Updated: 2021/10/31 14:45:32 by alcierra         ###   ########.fr       */
+/*   Updated: 2021/11/17 16:29:38 by alcierra         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
 #include <stdio.h>
+
+#define BUFF_CNT 1024
 
 void	*ft_memmove(void *dst, const void *src, size_t len)
 {
@@ -74,28 +76,38 @@ char	*ft_buff_preproc(char *buff, char *line, char **ptr_n, size_t *buff_len)
 	return (line);
 }
 
+char	*ft_get_current_buffer(int fd)
+{
+	static char	buff[BUFF_CNT][BUFFER_SIZE + 1];
+
+	if (fd < 0)
+		return (NULL);
+	return (buff[fd % BUFF_CNT]);
+}
+
 char	*get_next_line(int fd)
 {
-	static char	buff_read[BUFFER_SIZE + 1];
-	size_t		bytes_read;
+	char		*buff_read;
+	size_t		lens[2];
 	char		*line;
 	char		*ptr_n;
-	size_t		buff_len;
 
-	line = "";
-	line = ft_buff_preproc(buff_read, line, &ptr_n, &buff_len);
+	buff_read = ft_get_current_buffer(fd);
+	if (buff_read == NULL)
+		return (NULL);
+	line = ft_buff_preproc(buff_read, "", &ptr_n, &(lens[1]));
 	if (ptr_n)
 		return (line);
-	bytes_read = read(fd, buff_read + buff_len, BUFFER_SIZE - buff_len);
-	if ((int) bytes_read <= 0 && !(line[0]))
+	lens[0] = read(fd, buff_read + lens[1], BUFFER_SIZE - lens[1]);
+	if ((int) lens[0] <= 0 && !(line[0]))
 		return (0);
-	while (!ptr_n && (int) bytes_read > 0)
+	while (!ptr_n && (int) lens[0] > 0)
 	{
-		buff_read[bytes_read + buff_len] = 0;
-		buff_len = 0;
-		line = ft_proccess(buff_read, line, bytes_read + buff_len, &ptr_n);
+		buff_read[lens[0] + lens[1]] = 0;
+		lens[1] = 0;
+		line = ft_proccess(buff_read, line, lens[0] + lens[1], &ptr_n);
 		if (!ptr_n)
-			bytes_read = read(fd, buff_read + buff_len, BUFFER_SIZE - buff_len);
+			lens[0] = read(fd, buff_read + lens[1], BUFFER_SIZE - lens[1]);
 	}
 	if (!*line)
 		return (NULL);
